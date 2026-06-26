@@ -27,7 +27,7 @@ from src.review.scorer import check_poll_alignment, score_image
 
 MAX_RETRIES = 3
 POLL_MAX_RETRIES = 2
-IMAGE_QUALITY = "high"  # "low" | "medium" | "high" — drop to "medium" once prompts are stable
+IMAGE_QUALITY = "low"  # "low" | "medium" | "high" — drop to "medium" once prompts are stable
 
 
 def _resolve_theme_for_week(theme, week_number: int):
