@@ -1,12 +1,12 @@
 """
-Automated vision-based quality scoring against the rubric.
+Automated vision-based quality scoring.
 
-Rubric:
-  1. Theme relevance
-  2. Brand guideline adherence (colors, typography)
-  3. No logo/brand mark rendered by the AI -- the real logo is composited
-     in separately after this check passes (see logo_compositor.py)
-  4. Jewelry realism -- ONLY checked if jewelry is actually rendered in the image
+score_image: the 4-point image rubric (theme relevance, brand guidelines,
+no AI-drawn logo, jewelry realism).
+
+check_poll_alignment: a separate check used only for poll-format days --
+confirms the suggested poll question/options actually correspond to what's
+depicted in the image, rather than describing options that aren't shown.
 """
 
 import base64
@@ -42,6 +42,23 @@ Respond with exactly one line in this format:
 PASS or FAIL | <one sentence reason>
 """
 
+POLL_ALIGNMENT_PROMPT_TEMPLATE = """You are reviewing whether a suggested WhatsApp poll matches the image it will be posted alongside.
+
+Suggested poll text:
+{poll_text}
+
+Check: does the poll question and do its options correspond to what is
+actually depicted in the image? For example, if the image shows specific
+distinct items, styles, or choices, the poll options must reference those
+same things -- not different or unrelated alternatives. If the image shows
+a single piece or general scene (not distinct choices), the poll should
+still make sense as a general preference/opinion question relative to what's
+shown, not reference options that aren't visually present at all.
+
+Respond with exactly one line in this format:
+PASS or FAIL | <one sentence reason>
+"""
+
 
 def score_image(image_bytes: bytes, theme_name: str, content_focus: str) -> ScoreResult:
     """
@@ -53,6 +70,37 @@ def score_image(image_bytes: bytes, theme_name: str, content_focus: str) -> Scor
     """
     b64_image = base64.b64encode(image_bytes).decode("utf-8")
     prompt = RUBRIC_PROMPT_TEMPLATE.format(theme_name=theme_name, content_focus=content_focus)
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{b64_image}"},
+                    },
+                ],
+            }
+        ],
+    )
+
+    raw = response.choices[0].message.content.strip()
+    passed = raw.upper().startswith("PASS")
+    reason = raw.split("|", 1)[1].strip() if "|" in raw else raw
+    return ScoreResult(passed=passed, reason=reason)
+
+
+def check_poll_alignment(image_bytes: bytes, poll_text: str) -> ScoreResult:
+    """
+    Confirms the suggested poll question/options correspond to what's
+    actually shown in the image, catching cases like the image showing
+    option A/B while the poll suggests unrelated C/D.
+    """
+    b64_image = base64.b64encode(image_bytes).decode("utf-8")
+    prompt = POLL_ALIGNMENT_PROMPT_TEMPLATE.format(poll_text=poll_text)
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",

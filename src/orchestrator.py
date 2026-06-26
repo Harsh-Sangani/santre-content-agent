@@ -1,7 +1,8 @@
 """
 Runs the full weekly pipeline: for each configured day, build context,
-generate + score + retry the image, generate the caption, and write
-output to Drive + Sheets.
+generate + score + retry the image, generate the caption (or, for
+output_format="poll" days, generate + check-align + retry a poll
+suggestion grounded in the image), and write output to Drive + Sheets.
 
 This is the entry point GitHub Actions calls on the Sunday 9am cron.
 """
@@ -15,15 +16,16 @@ from src.config.themes import THEME_CONFIG
 from src.context.brand_guidelines import load_brand_guidelines
 from src.context.brand_positioning import load_brand_positioning
 from src.context.catalogue import pick_reference_images_for_theme
-from src.generation.caption_generator import generate_caption
+from src.generation.caption_generator import generate_caption, generate_poll
 from src.generation.image_generator import generate_text_to_image, generate_with_reference
 from src.generation.logo_compositor import composite_logo
-from src.generation.prompt_builder import build_caption_prompt, build_image_prompt
+from src.generation.prompt_builder import build_caption_prompt, build_image_prompt, build_poll_prompt
 from src.output.drive_uploader import get_or_create_week_folder, upload_image
 from src.output.sheets_writer import append_row, create_week_tab
-from src.review.scorer import score_image
+from src.review.scorer import check_poll_alignment, score_image
 
 MAX_RETRIES = 3
+POLL_MAX_RETRIES = 2
 IMAGE_QUALITY = "high"  # "low" | "medium" | "high" — drop to "medium" once prompts are stable
 
 
@@ -62,8 +64,13 @@ def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_i
     if status == "Approved":
         image_bytes = composite_logo(image_bytes)
 
-    caption_prompt = build_caption_prompt(theme, brand_positioning)
-    caption = generate_caption(caption_prompt)
+    if theme.output_format == "poll":
+        caption, poll_status = _generate_poll_with_alignment_check(image_bytes, theme, brand_positioning)
+        if poll_status == "Flagged" and status == "Approved":
+            status = "Approved (poll flagged for manual check)"
+    else:
+        caption_prompt = build_caption_prompt(theme, brand_positioning)
+        caption = generate_caption(caption_prompt)
 
     filename = f"{theme.day}.png"
     image_link = upload_image(image_bytes, filename, drive_folder_id)
@@ -76,6 +83,27 @@ def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_i
         "status": status,
         "retry_count": attempt,
     }
+
+
+def _generate_poll_with_alignment_check(image_bytes, theme, brand_positioning):
+    """
+    Generates a poll grounded in the image, then verifies alignment between
+    the suggested options and what's actually shown. Retries the poll text
+    (not the image) on misalignment, since the image is already approved.
+    """
+    retry_feedback = None
+    poll_text = ""
+
+    for attempt in range(1, POLL_MAX_RETRIES + 1):
+        prompt = build_poll_prompt(theme, brand_positioning, retry_feedback=retry_feedback)
+        poll_text = generate_poll(image_bytes, prompt)
+
+        alignment = check_poll_alignment(image_bytes, poll_text)
+        if alignment.passed:
+            return poll_text, "Approved"
+        retry_feedback = alignment.reason
+
+    return poll_text, "Flagged"
 
 
 def main():
