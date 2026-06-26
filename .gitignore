@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 assets/catalogue_extracted/*.png
 !assets/catalogue_extracted/.gitkeep
+service_account.json
