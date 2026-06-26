@@ -12,7 +12,7 @@ def build_image_prompt(
     retry_feedback: str | None = None,
 ) -> str:
     """
-    Construct the prompt sent to gpt-image-1.
+    Construct the prompt sent to gpt-image-2.
 
     retry_feedback: if this is a retry after a failed quality score, pass the
     scorer's failure reason here so the next attempt corrects for it instead
@@ -25,6 +25,9 @@ def build_image_prompt(
         f"Create a square Instagram post image for a jewellery brand. "
         f"Theme: {theme.theme_name}. Content focus: {theme.content_focus} "
         f"Follow these brand visual guidelines strictly: {brand_guidelines} "
+        f"Do not render any logo, brand mark, or brand wordmark anywhere in "
+        f"the image -- leave a clean, uncluttered area in the bottom-right "
+        f"corner; the logo will be added separately afterward. "
     )
     if has_product_reference:
         base += (
