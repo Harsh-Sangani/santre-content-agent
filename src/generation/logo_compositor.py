@@ -96,22 +96,30 @@ def composite_logo(
     """Overlay the real logo onto the generated image, auto-picking shape and contrast color."""
     base = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
 
+    shape = shape_override or choose_logo_shape(image_bytes)
+
+    # Determine target size FIRST, using the actual aspect ratio of the
+    # chosen shape -- this must happen before computing placement, since
+    # bottom-aligned positions need target_height, not target_width.
+    probe_logo = Image.open(LOGO_VARIANTS[shape]["dark"]).convert("RGBA")
+    aspect = probe_logo.height / probe_logo.width
+
     target_width = int(base.width * logo_width_ratio)
+    target_height = int(target_width * aspect)
     margin = int(base.width * margin_ratio)
 
     positions = {
-        "bottom-right": (base.width - target_width - margin, base.height - target_width - margin),
-        "bottom-left": (margin, base.height - target_width - margin),
+        "bottom-right": (base.width - target_width - margin, base.height - target_height - margin),
+        "bottom-left": (margin, base.height - target_height - margin),
         "top-right": (base.width - target_width - margin, margin),
         "top-left": (margin, margin),
     }
     paste_x, paste_y = positions.get(position, positions["bottom-right"])
 
-    shape = shape_override or choose_logo_shape(image_bytes)
-
-    probe_logo = Image.open(LOGO_VARIANTS[shape]["dark"]).convert("RGBA")
-    aspect = probe_logo.height / probe_logo.width
-    target_height = int(target_width * aspect)
+    # Safety clamp -- guarantees the logo can never extend past the canvas
+    # edge, regardless of aspect ratio, margin, or image size.
+    paste_x = max(0, min(paste_x, base.width - target_width))
+    paste_y = max(0, min(paste_y, base.height - target_height))
 
     region_box = (paste_x, paste_y, paste_x + target_width, paste_y + target_height)
 
