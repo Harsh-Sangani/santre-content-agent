@@ -20,7 +20,7 @@ THEME_CONFIG: list[DayTheme] = [
     DayTheme(
         day="Monday",
         theme_name="Diamond Education",
-        content_focus="Teach something valuable about diamonds (4Cs, cut types, care tips, certifications).",
+        content_focus="Teach something valuable about diamonds. Lean into Santrea's unbiased natural-vs-lab-grown positioning where relevant — not just generic 4Cs content.",
         needs_product_reference=False,
         rubric_realism_check="conditional",
     ),
