@@ -9,6 +9,7 @@ This is the entry point GitHub Actions calls on the Sunday 9am cron.
 from dotenv import load_dotenv
 load_dotenv()
 
+import dataclasses
 import datetime
 import os
 
@@ -27,6 +28,20 @@ from src.review.scorer import check_poll_alignment, score_image
 MAX_RETRIES = 3
 POLL_MAX_RETRIES = 2
 IMAGE_QUALITY = "high"  # "low" | "medium" | "high" — drop to "medium" once prompts are stable
+
+
+def _resolve_theme_for_week(theme, week_number: int):
+    """
+    If a theme has multiple content_angles defined, deterministically rotate
+    through them by ISO week number so the same angle doesn't get picked
+    every run -- avoids the AI defaulting to whichever angle is mentioned
+    most prominently in content_focus.
+    """
+    if not theme.content_angles:
+        return theme
+
+    angle = theme.content_angles[week_number % len(theme.content_angles)]
+    return dataclasses.replace(theme, content_focus=angle)
 
 
 def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_id: str):
@@ -112,6 +127,7 @@ def main():
 
     today = datetime.date.today()
     week_label = f"Week_{today.isoformat()}"
+    week_number = today.isocalendar()[1]
 
     parent_folder_id = os.environ["GOOGLE_DRIVE_PARENT_FOLDER_ID"]
     spreadsheet_id = os.environ["GOOGLE_SHEETS_SPREADSHEET_ID"]
@@ -119,7 +135,8 @@ def main():
     drive_folder_id = get_or_create_week_folder(week_label, parent_folder_id)
     create_week_tab(spreadsheet_id, week_label)
 
-    for theme in THEME_CONFIG:
+    for raw_theme in THEME_CONFIG:
+        theme = _resolve_theme_for_week(raw_theme, week_number)
         result = run_day(theme, brand_guidelines, brand_positioning, drive_folder_id)
         append_row(
             spreadsheet_id,
