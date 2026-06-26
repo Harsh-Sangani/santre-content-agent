@@ -2,8 +2,6 @@
 __pycache__/
 *.pyc
 .venv/
-assets/catalogue/*.png
-!assets/catalogue/.gitkeep
 service_account.json
 client_secret.json
 token.json
