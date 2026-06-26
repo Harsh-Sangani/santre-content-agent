@@ -1,5 +1,5 @@
 """
-Calls gpt-image-1 to generate the day's image -- either reference-conditioned
+Calls gpt-image-2 to generate the day's image -- either reference-conditioned
 (images.edit, using catalogue photos) or pure text-to-image (images.generate).
 """
 
@@ -10,7 +10,11 @@ from openai import OpenAI
 client = OpenAI()  # reads OPENAI_API_KEY from env
 
 
-def generate_with_reference(prompt: str, reference_image_paths: list[Path]) -> bytes:
+def generate_with_reference(
+    prompt: str,
+    reference_image_paths: list[Path],
+    quality: str = "medium",  # "low" | "medium" | "high"
+) -> bytes:
     """
     Reference-conditioned generation via /v1/images/edits.
     Used for Tuesday (always) and Mon/Sat when a product is shown.
@@ -22,6 +26,7 @@ def generate_with_reference(prompt: str, reference_image_paths: list[Path]) -> b
             model="gpt-image-2",
             image=files,
             prompt=prompt,
+            quality=quality,
         )
     finally:
         for f in files:
@@ -31,15 +36,16 @@ def generate_with_reference(prompt: str, reference_image_paths: list[Path]) -> b
     return base64.b64decode(result.data[0].b64_json)
 
 
-def generate_text_to_image(prompt: str) -> bytes:
+def generate_text_to_image(prompt: str, quality: str = "medium") -> bytes:
     """
     Pure text-to-image generation via /v1/images/generations.
     Used for Mon/Sat when no product reference is needed.
     Returns raw image bytes (decoded from base64).
     """
     result = client.images.generate(
-        model="gpt-image-1",
+        model="gpt-image-2",
         prompt=prompt,
+        quality=quality,
     )
     import base64
     return base64.b64decode(result.data[0].b64_json)

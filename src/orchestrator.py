@@ -5,6 +5,8 @@ output to Drive + Sheets.
 
 This is the entry point GitHub Actions calls on the Sunday 9am cron.
 """
+from dotenv import load_dotenv
+load_dotenv()
 
 import datetime
 import os
