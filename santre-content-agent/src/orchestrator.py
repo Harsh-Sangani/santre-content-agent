@@ -21,6 +21,7 @@ from src.output.sheets_writer import append_row, create_week_tab
 from src.review.scorer import score_image
 
 MAX_RETRIES = 3
+IMAGE_QUALITY = "high"  # "low" | "medium" | "high" — drop to "medium" once prompts are stable
 
 
 def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_id: str):
@@ -44,9 +45,9 @@ def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_i
         )
 
         image_bytes = (
-            generate_with_reference(prompt, reference_images)
+            generate_with_reference(prompt, reference_images, quality=IMAGE_QUALITY)
             if has_reference
-            else generate_text_to_image(prompt)
+            else generate_text_to_image(prompt, quality=IMAGE_QUALITY)
         )
 
         score = score_image(image_bytes, theme.theme_name, theme.content_focus)

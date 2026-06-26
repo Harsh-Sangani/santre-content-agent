@@ -19,7 +19,7 @@ def generate_with_reference(prompt: str, reference_image_paths: list[Path]) -> b
     files = [open(p, "rb") for p in reference_image_paths]
     try:
         result = client.images.edit(
-            model="gpt-image-1",
+            model="gpt-image-2",
             image=files,
             prompt=prompt,
         )
