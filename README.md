@@ -1,4 +1,4 @@
-# Santre Content Agent
+#Content Agent
 
 An automated weekly content pipeline that generates on-brand social media images and captions for a jewellery brand. Runs on a GitHub Actions cron every Sunday, producing content for three days of the week (Monday, Tuesday, Saturday), and writes the output to Google Drive and Google Sheets.
 
