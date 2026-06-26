@@ -1,10 +1,11 @@
 """
-Automated vision-based quality scoring against the 4-point rubric.
+Automated vision-based quality scoring against the rubric.
 
 Rubric:
   1. Theme relevance
-  2. Brand guideline adherence (colors, typography, logo usage)
-  3. Logo accuracy (minor imperfections accepted -- not pixel-perfect)
+  2. Brand guideline adherence (colors, typography)
+  3. No logo/brand mark rendered by the AI -- the real logo is composited
+     in separately after this check passes (see logo_compositor.py)
   4. Jewelry realism -- ONLY checked if jewelry is actually rendered in the image
 """
 
@@ -29,8 +30,10 @@ Content focus: {content_focus}
 
 Check the image against these criteria:
 1. Does the image clearly match the theme and content focus above?
-2. Does it follow brand visual guidelines (colors, typography, logo usage)?
-3. If a logo appears, is it reasonably close to correct? (minor imperfections are OK)
+2. Does it follow brand visual guidelines (colors, typography)?
+3. The image should NOT contain any logo, brand mark, or brand wordmark --
+   the real logo gets added separately after this check. If one appears
+   anyway, treat it as a failure.
 4. If actual jewelry is rendered in the image, does it look physically realistic
    (no impossible geometry, inverted earrings, broken clasps, etc.)?
    If there is no rendered jewelry in this image, skip this check entirely.
