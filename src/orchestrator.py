@@ -17,6 +17,7 @@ from src.context.brand_positioning import load_brand_positioning
 from src.context.catalogue import pick_reference_images_for_theme
 from src.generation.caption_generator import generate_caption
 from src.generation.image_generator import generate_text_to_image, generate_with_reference
+from src.generation.logo_compositor import composite_logo
 from src.generation.prompt_builder import build_caption_prompt, build_image_prompt
 from src.output.drive_uploader import get_or_create_week_folder, upload_image
 from src.output.sheets_writer import append_row, create_week_tab
@@ -57,6 +58,9 @@ def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_i
             status = "Approved"
             break
         retry_feedback = score.reason
+
+    if status == "Approved":
+        image_bytes = composite_logo(image_bytes)
 
     caption_prompt = build_caption_prompt(theme, brand_positioning)
     caption = generate_caption(caption_prompt)
