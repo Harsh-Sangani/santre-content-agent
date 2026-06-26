@@ -17,7 +17,7 @@ from src.config.themes import THEME_CONFIG
 from src.context.brand_guidelines import load_brand_guidelines
 from src.context.brand_positioning import load_brand_positioning
 from src.context.catalogue import pick_reference_images_for_theme
-from src.generation.caption_generator import generate_caption, generate_poll
+from src.generation.caption_generator import generate_text
 from src.generation.image_generator import generate_text_to_image, generate_with_reference
 from src.generation.logo_compositor import composite_logo
 from src.generation.prompt_builder import build_caption_prompt, build_image_prompt, build_poll_prompt
@@ -85,7 +85,7 @@ def run_day(theme, brand_guidelines: str, brand_positioning: str, drive_folder_i
             status = "Approved (poll flagged for manual check)"
     else:
         caption_prompt = build_caption_prompt(theme, brand_positioning)
-        caption = generate_caption(caption_prompt)
+        caption = generate_text(image_bytes, caption_prompt)
 
     filename = f"{theme.day}.png"
     image_link = upload_image(image_bytes, filename, drive_folder_id)
@@ -111,7 +111,7 @@ def _generate_poll_with_alignment_check(image_bytes, theme, brand_positioning):
 
     for attempt in range(1, POLL_MAX_RETRIES + 1):
         prompt = build_poll_prompt(theme, brand_positioning, retry_feedback=retry_feedback)
-        poll_text = generate_poll(image_bytes, prompt)
+        poll_text = generate_text(image_bytes, prompt)
 
         alignment = check_poll_alignment(image_bytes, poll_text)
         if alignment.passed:
